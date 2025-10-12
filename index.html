@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web IDE - Import & Create Apps</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #1e1e1e;
+            color: white;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: #252526;
+            border-right: 1px solid #3c3c3c;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .project-section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            color: #cccccc;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .btn {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            margin: 5px 0;
+            width: 100%;
+            text-align: left;
+        }
+
+        .btn:hover {
+            background: #005a9e;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .file-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 3px;
+            margin: 2px 0;
+            display: flex;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .file-item:hover {
+            background: #2a2d2e;
+        }
+
+        .file-item.active {
+            background: #37373d;
+            border-left: 3px solid #007acc;
+        }
+
+        .file-icon {
+            margin-right: 8px;
+            font-size: 14px;
+        }
+
+        /* Editor Area */
+        .editor-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .toolbar {
+            background: #2d2d2d;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #3c3c3c;
+        }
+
+        .tab-bar {
+            background: #2d2d2d;
+            display: flex;
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: #2d2d2d;
+            border-right: 1px solid #3c3c3c;
+            cursor: pointer;
+            min-width: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .tab.active {
+            background: #1e1e1e;
+        }
+
+        .tab-close {
+            margin-left: 8px;
+            cursor: pointer;
+            padding: 2px 5px;
+            border-radius: 2px;
+        }
+
+        .tab-close:hover {
+            background: #ff6b6b;
+        }
+
+        .editor-container {
+            flex: 1;
+            display: flex;
+        }
+
+        .code-editor {
+            flex: 1;
+            border: none;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+            tab-size: 4;
+        }
+
+        /* Preview Area */
+        .preview-area {
+            width: 450px;
+            background: white;
+            border-left: 1px solid #3c3c3c;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-header {
+            background: #007acc;
+            color: white;
+            padding: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .preview-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .preview-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        #preview {
+            flex: 1;
+            border: none;
+            background: white;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #252526;
+            padding: 25px;
+            border-radius: 8px;
+            min-width: 400px;
+            max-width: 500px;
+        }
+
+        .modal h3 {
+            margin-bottom: 15px;
+            color: #007acc;
+        }
+
+        .modal input, .modal select {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            background: #3c3c3c;
+            border: 1px solid #007acc;
+            color: white;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 1001;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* File type colors */
+        .html-file { color: #e34c26; }
+        .css-file { color: #264de4; }
+        .js-file { color: #f7df1e; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="project-section">
+                <div class="section-title">Project</div>
+                <button class="btn" onclick="showModal('createProjectModal')">
+                    🆕 New Project
+                </button>
+                <button class="btn btn-success" onclick="exportProject()">
+                    📦 Export Project
+                </button>
+                <button class="btn" onclick="showModal('createAppModal')">
+                    📱 Create App
+                </button>
+            </div>
+
+            <div class="project-section">
+                <div class="section-title">Files</div>
+                <button class="btn" onclick="showModal('createFileModal')">
+                    📄 New File
+                </button>
+                <button class="btn" onclick="document.getElementById('fileImport').click()">
+                    📁 Import Files
+                </button>
+                <button class="btn" onclick="showModal('importAppModal')">
+                    📲 Import & Create App
+                </button>
+                
+                <div id="fileList" style="margin-top: 10px;">
+                    <!-- Files will be listed here -->
+                </div>
+            </div>
+
+            <div class="project-section">
+                <div class="section-title">Templates</div>
+                <button class="btn" onclick="loadTemplate('blank')">
+                    ⬜ Blank App
+                </button>
+                <button class="btn" onclick="loadTemplate('portfolio')">
+                    👨‍💼 Portfolio
+                </button>
+                <button class="btn" onclick="loadTemplate('business')">
+                    💼 Business Site
+                </button>
+                <button class="btn" onclick="loadTemplate('calculator')">
+                    🧮 Calculator
+                </button>
+            </div>
+        </div>
+
+        <!-- Editor Area -->
+        <div class="editor-area">
+            <div class="toolbar">
+                <div>
+                    <span id="projectName">My Web App</span>
+                    <span style="color: #cccccc; margin-left: 10px; font-size: 12px;">
+                        HTML + CSS + JavaScript
+                    </span>
+                </div>
+                <div>
+                    <button class="preview-btn" onclick="runProject()">
+                        ▶ Run Project
+                    </button>
+                    <button class="preview-btn" onclick="updatePreview()">
+                        🔄 Refresh Preview
+                    </button>
+                    <button class="preview-btn" onclick="saveCurrentFile()">
+                        💾 Save (Ctrl+S)
+                    </button>
+                </div>
+            </div>
+
+            <div class="tab-bar" id="tabBar">
+                <!-- Tabs will be created here -->
+            </div>
+
+            <div class="editor-container">
+                <textarea class="code-editor" id="codeEditor" 
+                          placeholder="Write your code here... Press Ctrl+S to save"></textarea>
+            </div>
+        </div>
+
+        <!-- Preview Area -->
+        <div class="preview-area">
+            <div class="preview-header">
+                <h3>Live Preview</h3>
+                <div class="preview-controls">
+                    <button class="preview-btn" onclick="openInNewTab()">
+                        🔗 Open in New Tab
+                    </button>
+                    <button class="preview-btn" onclick="updatePreview()">
+                        🔄 Refresh
+                    </button>
+                </div>
+            </div>
+            <iframe id="preview" title="Live Preview"></iframe>
+        </div>
+    </div>
+
+    <!-- Hidden file input for import -->
+    <input type="file" id="fileImport" multiple accept=".html,.css,.js,.txt" style="display: none;">
+
+    <!-- Notification -->
+    <div class="notification" id="notification"></div>
+
+    <!-- Modals -->
+    <div class="modal" id="createProjectModal">
+        <div class="modal-content">
+            <h3>Create New Project</h3>
+            <input type="text" id="projectNameInput" placeholder="Enter project name" value="MyWebApp">
+            <select id="projectTemplate">
+                <option value="blank">Blank Project</option>
+                <option value="portfolio">Portfolio Template</option>
+                <option value="business">Business Website</option>
+                <option value="calculator">Calculator App</option>
+            </select>
+            <div class="modal-buttons">
+                <button class="btn" onclick="createNewProject()">Create Project</button>
+                <button class="btn" style="background: #6c757d;" 
+                        onclick="hideModal('createProjectModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="createFileModal">
+        <div class="modal-content">
+            <h3>Create New File</h3>
+            <input type="text" id="fileName" placeholder="Enter file name (e.g., index.html)">
+            <select id="fileType">
+                <option value="html">HTML File</option>
+                <option value="css">CSS File</option>
+                <option value="js">JavaScript File</option>
+            </select>
+            <div class="modal-buttons">
+                <button class="btn" onclick="createNewFile()">Create File</button>
+                <button class="btn" style="background: #6c757d;" 
+                        onclick="hideModal('createFileModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="createAppModal">
+        <div class="modal-content">
+            <h3>Create App from Project</h3>
+            <input type="text" id="appName" placeholder="Enter app name" value="MyApp">
+            <p style="margin: 10px 0; font-size: 14px; color: #ccc;">
+                This will create a standalone HTML file with all your code included.
+            </p>
+            <div class="modal-buttons">
+                <button class="btn" onclick="createAppFromProject()">Create App</button>
+                <button class="btn" style="background: #6c757d;" 
+                        onclick="hideModal('createAppModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="importAppModal">
+        <div class="modal-content">
+            <h3>Import Files and Create App</h3>
+            <input type="text" id="importAppName" placeholder="Enter app name" value="MyImportedApp">
+            <p style="margin: 10px 0; font-size: 14px; color: #ccc;">
+                Select files to import and create an app from them.
+            </p>
+            <div class="modal-buttons">
+                <button class="btn" onclick="document.getElementById('appFileImport').click()">Select Files</button>
+                <button class="btn" style="background: #6c757d;" 
+                        onclick="hideModal('importAppModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden file input for app import -->
+    <input type="file" id="appFileImport" multiple accept=".html,.css,.js,.txt" style="display: none;">
+
+    <script>
+        // Enhanced IDE with import/export functionality
+        let project = {
+            name: "My Web App",
+            files: {},
+            activeFile: null
+        };
+
+        // Initialize the IDE
+        function initIDE() {
+            // Set up file import handlers
+            document.getElementById('fileImport').addEventListener('change', handleFileImport);
+            document.getElementById('appFileImport').addEventListener('change', handleAppFileImport);
+            
+            // Set up keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.key === 's') {
+                    e.preventDefault();
+                    saveCurrentFile();
+                }
+            });
+
+            // Create default project
+            createBlankProject();
+        }
+
+        // Create blank project
+        function createBlankProject() {
+            project.files = {
+                'index.html': {
+                    name: 'index.html',
+                    content: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${project.name}</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to ${project.name}</h1>
+        <p>Start building your amazing web application!</p>
+        <button onclick="showAlert()">Click Me</button>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>`,
+                    type: 'html'
+                },
+                'style.css': {
+                    name: 'style.css',
+                    content: `/* CSS for ${project.name} */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.container {
+    background: white;
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    text-align: center;
+    max-width: 500px;
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+p {
+    color: #666;
+    margin-bottom: 30px;
+}
+
+button {
+    background: #007acc;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.3s;
+}
+
+button:hover {
+    background: #005a9e;
+}`,
+                    type: 'css'
+                },
+                'script.js': {
+                    name: 'script.js',
+                    content: `// JavaScript for ${project.name}
+console.log('${project.name} loaded successfully!');
+
+function showAlert() {
+    alert('Hello! Your web app is working!');
+}
+
+// Additional functionality can be added here
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM fully loaded');
+});`,
+                    type: 'js'
+                }
+            };
+
+            project.activeFile = 'index.html';
+            updateProjectView();
+        }
+
+        // Handle file import
+        function handleFileImport(event) {
+            const files = event.target.files;
+            
+            for (let file of files) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const fileName = file.name;
+                    const fileExt = fileName.split('.').pop().toLowerCase();
+                    
+                    // Add file to project
+                    project.files[fileName] = {
+                        name: fileName,
+                        content: e.target.result,
+                        type: fileExt
+                    };
+                    
+                    // If it's the first file or an index.html, make it active
+                    if (!project.activeFile || fileName === 'index.html') {
+                        project.activeFile = fileName;
+                    }
+                    
+                    updateProjectView();
+                    showNotification('File imported successfully!');
+                };
+                reader.readAsText(file);
+            }
+            
+            // Reset file input
+            event.target.value = '';
+        }
+
+        // Handle app file import
+        function handleAppFileImport(event) {
+            const files = event.target.files;
+            const appName = document.getElementById('importAppName').value || 'MyApp';
+            
+            // Create a new project with imported files
+            project.name = appName;
+            document.getElementById('projectName').textContent = appName;
+            project.files = {};
+            
+            let fileCount = 0;
+            for (let file of files) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const fileName = file.name;
+                    const fileExt = fileName.split('.').pop().toLowerCase();
+                    
+                    // Add file to project
+                    project.files[fileName] = {
+                        name: fileName,
+                        content: e.target.result,
+                        type: fileExt
+                    };
+                    
+                    fileCount++;
+                    
+                    // If all files are loaded
+                    if (fileCount === files.length) {
+                        // If it's the first file or an index.html, make it active
+                        if (!project.activeFile || fileName === 'index.html') {
+                            project.activeFile = Object.keys(project.files)[0];
+                        }
+                        
+                        updateProjectView();
+                        hideModal('importAppModal');
+                        showNotification('App imported successfully!');
+                    }
+                };
+                reader.readAsText(file);
+            }
+            
+            // Reset file input
+            event.target.value = '';
+        }
+
+        // Create new project
+        function createNewProject() {
+            const projectName = document.getElementById('projectNameInput').value;
+            const template = document.getElementById('projectTemplate').value;
+            
+            project.name = projectName;
+            document.getElementById('projectName').textContent = projectName;
+            
+            // Load selected template
+            loadTemplate(template);
+            hideModal('createProjectModal');
+        }
+
+        // Load template
+        function loadTemplate(templateName) {
+            const templates = {
+                blank: createBlankProject,
+                portfolio: createPortfolioTemplate,
+                business: createBusinessTemplate,
+                calculator: createCalculatorTemplate
+            };
+            
+            if (templates[templateName]) {
+                templates[templateName]();
+                showNotification(`${templateName} template loaded!`);
+            }
+        }
+
+        // Portfolio template
+        function createPortfolioTemplate() {
+            project.files = {
+                'index.html': {
+                    name: 'index.html',
+                    content: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${project.name} - Portfolio</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav>
+        <div class="nav-brand">${project.name}</div>
+        <ul>
+            <li><a href="#home">Home</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#projects">Projects</a></li>
+            <li><a href="#contact">Contact</a></li>
+        </ul>
+    </nav>
+    
+    <section id="home" class="hero">
+        <div class="hero-content">
+            <h1>Hello, I'm ${project.name.split(' ')[0]}</h1>
+            <p>Web Developer & Designer</p>
+            <button onclick="viewProjects()">View My Work</button>
+        </div>
+    </section>
+    
+    <section id="about" class="section">
+        <h2>About Me</h2>
+        <p>I'm a passionate web developer with experience in creating modern web applications.</p>
+    </section>
+    
+    <section id="projects" class="section">
+        <h2>My Projects</h2>
+        <div class="projects-grid">
+            <div class="project-card">
+                <h3>Project 1</h3>
+                <p>Description of project 1</p>
+            </div>
+            <div class="project-card">
+                <h3>Project 2</h3>
+                <p>Description of project 2</p>
+            </div>
+        </div>
+    </section>
+    
+    <section id="contact" class="section">
+        <h2>Contact Me</h2>
+        <p>Email: example@email.com</p>
+    </section>
+    
+    <script src="script.js"></script>
+</body>
+</html>`,
+                    type: 'html'
+                },
+                'style.css': {
+                    name: 'style.css',
+                    content: `/* Portfolio Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
+}
+
+nav {
+    background: #2c3e50;
+    color: white;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1000;
+}
+
+.nav-brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+nav ul {
+    list-style: none;
+    display: flex;
+    gap: 2rem;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+nav a:hover {
+    color: #3498db;
+}
+
+.hero {
+    height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: white;
+    padding-top: 60px;
+}
+
+.hero-content h1 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.hero-content p {
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.hero-content button {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.hero-content button:hover {
+    background: #c0392b;
+}
+
+.section {
+    padding: 80px 2rem;
+    min-height: 60vh;
+}
+
+.section:nth-child(even) {
+    background: #f8f9fa;
+}
+
+.projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.project-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}`,
+                    type: 'css'
+                },
+                'script.js': {
+                    name: 'script.js',
+                    content: `// Portfolio JavaScript
+console.log('Portfolio template loaded');
+
+function viewProjects() {
+    alert('Scroll down to view projects section!');
+    // Smooth scroll to projects section
+    document.getElementById('projects')?.scrollIntoView({ 
+        behavior: 'smooth' 
+    });
+}
+
+// Smooth scrolling for navigation links
+document.addEventListener('DOMContentLoaded', function() {
+    const links = document.querySelectorAll('nav a');
+    
+    links.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href').substring(1);
+            const targetSection = document.getElementById(targetId);
+            
+            if (targetSection) {
+                targetSection.scrollIntoView({
+                    behavior: 'smooth'
+                });
+            }
+        });
+    });
+});`,
+                    type: 'js'
+                }
+            };
+            
+            project.activeFile = 'index.html';
+            updateProjectView();
+        }
+
+        // Business template
+        function createBusinessTemplate() {
+            project.files = {
+                'index.html': {
+                    name: 'index.html',
+                    content: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${project.name} - Business</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">${project.name}</div>
+            <ul>
+                <li><a href="#home">Home</a></li>
+                <li><a href="#services">Services</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+    
+    <section id="home" class="hero">
+        <div class="hero-content">
+            <h1>Professional Business Solutions</h1>
+            <p>We provide the best services for your business growth</p>
+            <button onclick="contactUs()">Get Started</button>
+        </div>
+    </section>
+    
+    <section id="services" class="section">
+        <h2>Our Services</h2>
+        <div class="services-grid">
+            <div class="service-card">
+                <h3>Web Development</h3>
+                <p>Custom web applications tailored to your needs</p>
+            </div>
+            <div class="service-card">
+                <h3>Digital Marketing</h3>
+                <p>Boost your online presence with our strategies</p>
+            </div>
+            <div class="service-card">
+                <h3>Consulting</h3>
+                <p>Expert advice for your business challenges</p>
+            </div>
+        </div>
+    </section>
+    
+    <script src="script.js"></script>
+</body>
+</html>`,
+                    type: 'html'
+                },
+                'style.css': {
+                    name: 'style.css',
+                    content: `/* Business Template Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
+}
+
+header {
+    background: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1000;
+}
+
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #007acc;
+}
+
+nav ul {
+    list-style: none;
+    display: flex;
+    gap: 2rem;
+}
+
+nav a {
+    text-decoration: none;
+    color: #333;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+nav a:hover {
+    color: #007acc;
+}
+
+.hero {
+    height: 100vh;
+    background: linear-gradient(135deg, #007acc 0%, #005a9e 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: white;
+    padding-top: 80px;
+}
+
+.hero-content h1 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.hero-content p {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+}
+
+.hero-content button {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.hero-content button:hover {
+    background: #c0392b;
+}
+
+.section {
+    padding: 80px 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.service-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    text-align: center;
+    transition: transform 0.3s;
+}
+
+.service-card:hover {
+    transform: translateY(-5px);
+}`,
+                    type: 'css'
+                },
+                'script.js': {
+                    name: 'script.js',
+                    content: `// Business Template JavaScript
+console.log('Business template loaded');
+
+function contactUs() {
+    alert('Contact us at: info@business.com');
+}
+
+// Additional business functionality
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Business website ready');
+});`,
+                    type: 'js'
+                }
+            };
+            
+            project.activeFile = 'index.html';
+            updateProjectView();
+        }
+
+        // Calculator template
+        function createCalculatorTemplate() {
+            project.files = {
+                'index.html': {
+                    name: 'index.html',
+                    content: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${project.name} - Calculator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="calculator">
+        <div class="display">
+            <input type="text" id="result" readonly>
+        </div>
+        <div class="buttons">
+            <button onclick="clearDisplay()" class="clear">C</button>
+            <button onclick="deleteLast()" class="delete">⌫</button>
+            <button onclick="appendToDisplay('/')" class="operator">/</button>
+            <button onclick="appendToDisplay('*')" class="operator">×</button>
+            
+            <button onclick="appendToDisplay('7')">7</button>
+            <button onclick="appendToDisplay('8')">8</button>
+            <button onclick="appendToDisplay('9')">9</button>
+            <button onclick="appendToDisplay('-')" class="operator">-</button>
+            
+            <button onclick="appendToDisplay('4')">4</button>
+            <button onclick="appendToDisplay('5')">5</button>
+            <button onclick="appendToDisplay('6')">6</button>
+            <button onclick="appendToDisplay('+')" class="operator">+</button>
+            
+            <button onclick="appendToDisplay('1')">1</button>
+            <button onclick="appendToDisplay('2')">2</button>
+            <button onclick="appendToDisplay('3')">3</button>
+            <button onclick="calculate()" class="equals" rowspan="2">=</button>
+            
+            <button onclick="appendToDisplay('0')" class="zero">0</button>
+            <button onclick="appendToDisplay('.')">.</button>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>`,
+                    type: 'html'
+                },
+                'style.css': {
+                    name: 'style.css',
+                    content: `/* Calculator Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.calculator {
+    background: #2c3e50;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    overflow: hidden;
+    width: 300px;
+}
+
+.display {
+    padding: 20px;
+    background: #34495e;
+}
+
+.display input {
+    width: 100%;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 2rem;
+    text-align: right;
+    outline: none;
+}
+
+.buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: #34495e;
+}
+
+button {
+    border: none;
+    padding: 20px;
+    font-size: 1.2rem;
+    background: #2c3e50;
+    color: white;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+button:hover {
+    background: #34495e;
+}
+
+.operator {
+    background: #e74c3c;
+}
+
+.operator:hover {
+    background: #c0392b;
+}
+
+.equals {
+    background: #27ae60;
+    grid-row: span 2;
+}
+
+.equals:hover {
+    background: #219a52;
+}
+
+.clear, .delete {
+    background: #7f8c8d;
+}
+
+.clear:hover, .delete:hover {
+    background: #95a5a6;
+}
+
+.zero {
+    grid-column: span 2;
+}`,
+                    type: 'css'
+                },
+                'script.js': {
+                    name: 'script.js',
+                    content: `// Calculator JavaScript
+let display = document.getElementById('result');
+
+function appendToDisplay(value) {
+    display.value += value;
+}
+
+function clearDisplay() {
+    display.value = '';
+}
+
+function deleteLast() {
+    display.value = display.value.slice(0, -1);
+}
+
+function calculate() {
+    try {
+        display.value = eval(display.value);
+    } catch (error) {
+        display.value = 'Error';
+    }
+}
+
+// Keyboard support
+document.addEventListener('keydown', function(event) {
+    const key = event.key;
+    
+    if ('0123456789+-*/.'.includes(key)) {
+        appendToDisplay(key);
+    } else if (key === 'Enter') {
+        calculate();
+    } else if (key === 'Escape') {
+        clearDisplay();
+    } else if (key === 'Backspace') {
+        deleteLast();
+    }
+});`,
+                    type: 'js'
+                }
+            };
+            
+            project.activeFile = 'index.html';
+            updateProjectView();
+        }
+
+        // Update project view
+        function updateProjectView() {
+            renderFileList();
+            updateTabs();
+            updateEditor();
+            updatePreview();
+        }
+
+        // Render file list
+        function renderFileList() {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+            
+            Object.values(project.files).forEach(file => {
+                const fileItem = document.createElement('div');
+                fileItem.className = `file-item ${file.name === project.activeFile ? 'active' : ''}`;
+                fileItem.innerHTML = `
+                    <span class="file-icon">${getFileIcon(file.type)}</span>
+                    <span class="${file.type}-file">${file.name}</span>
+                `;
+                fileItem.onclick = () => openFile(file.name);
+                fileList.appendChild(fileItem);
+            });
+        }
+
+        // Get file icon
+        function getFileIcon(type) {
+            const icons = {
+                'html': '📄',
+                'css': '🎨',
+                'js': '⚡'
+            };
+            return icons[type] || '📁';
+        }
+
+        // Open file
+        function openFile(filename) {
+            if (project.files[filename]) {
+                project.activeFile = filename;
+                updateProjectView();
+            }
+        }
+
+        // Update tabs
+        function updateTabs() {
+            const tabBar = document.getElementById('tabBar');
+            tabBar.innerHTML = '';
+            
+            Object.values(project.files).forEach(file => {
+                const tab = document.createElement('div');
+                tab.className = `tab ${file.name === project.activeFile ? 'active' : ''}`;
+                tab.innerHTML = `
+                    ${file.name}
+                    <span class="tab-close" onclick="closeFile('${file.name}')">×</span>
+                `;
+                tab.onclick = () => openFile(file.name);
+                tabBar.appendChild(tab);
+            });
+        }
+
+        // Update editor
+        function updateEditor() {
+            if (project.activeFile && project.files[project.activeFile]) {
+                document.getElementById('codeEditor').value = project.files[project.activeFile].content;
+            }
+        }
+
+        // Update preview
+        function updatePreview() {
+            const preview = document.getElementById('preview');
+            const htmlFile = project.files['index.html'] || Object.values(project.files).find(f => f.type === 'html');
+            
+            if (htmlFile) {
+                let content = htmlFile.content;
+                
+                // Inject CSS and JS files
+                Object.values(project.files).forEach(file => {
+                    if (file.type === 'css') {
+                        const styleTag = `<style>${file.content}</style>`;
+                        const headIndex = content.indexOf('</head>');
+                        if (headIndex !== -1) {
+                            content = content.slice(0, headIndex) + styleTag + content.slice(headIndex);
+                        } else {
+                            // If no head tag, add it
+                            content = content.replace('<html>', '<html><head></head>');
+                            const newHeadIndex = content.indexOf('</head>');
+                            content = content.slice(0, newHeadIndex) + styleTag + content.slice(newHeadIndex);
+                        }
+                    }
+                    
+                    if (file.type === 'js' && file.name !== 'script.js') {
+                        const scriptTag = `<script>${file.content}<\/script>`;
+                        const bodyIndex = content.indexOf('</body>');
+                        if (bodyIndex !== -1) {
+                            content = content.slice(0, bodyIndex) + scriptTag + content.slice(bodyIndex);
+                        } else {
+                            // If no body tag, add it
+                            content = content.replace('</html>', '<body></body></html>');
+                            const newBodyIndex = content.indexOf('</body>');
+                            content = content.slice(0, newBodyIndex) + scriptTag + content.slice(newBodyIndex);
+                        }
+                    }
+                });
+                
+                preview.srcdoc = content;
+            } else {
+                // If no HTML file, create a simple one
+                let content = `<!DOCTYPE html>
+<html>
+<head><title>${project.name}</title></head>
+<body>
+    <h1>${project.name}</h1>
+    <p>No HTML file found in project.</p>
+</body>
+</html>`;
+                
+                // Add any CSS or JS files
+                Object.values(project.files).forEach(file => {
+                    if (file.type === 'css') {
+                        content = content.replace('</head>', `<style>${file.content}</style></head>`);
+                    }
+                    if (file.type === 'js') {
+                        content = content.replace('</body>', `<script>${file.content}</script></body>`);
+                    }
+                });
+                
+                preview.srcdoc = content;
+            }
+        }
+
+        // Save current file
+        function saveCurrentFile() {
+            if (project.activeFile) {
+                project.files[project.activeFile].content = document.getElementById('codeEditor').value;
+                updatePreview();
+                showNotification('File saved successfully!');
+            }
+        }
+
+        // Get default content for new files
+        function getDefaultContent(fileType) {
+            const defaults = {
+                'html': `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${project.name}</title>
+</head>
+<body>
+    <h1>Welcome to ${project.name}</h1>
+</body>
+</html>`,
+                'css': `/* CSS for ${project.name} */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+}`,
+                'js': `// JavaScript for ${project.name}
+console.log('${project.name} loaded');`
+            };
+            
+            return defaults[fileType] || '';
+        }
+
+        // Create new file
+        function createNewFile() {
+            const fileName = document.getElementById('fileName').value.trim();
+            const fileType = document.getElementById('fileType').value;
+            
+            if (fileName) {
+                const fullFileName = fileName.includes('.') ? fileName : `${fileName}.${fileType}`;
+                
+                project.files[fullFileName] = {
+                    name: fullFileName,
+                    content: getDefaultContent(fileType),
+                    type: fileType
+                };
+                
+                project.activeFile = fullFileName;
+                hideModal('createFileModal');
+                document.getElementById('fileName').value = '';
+                updateProjectView();
+                showNotification('File created successfully!');
+            }
+        }
+
+        // Close file
+        function closeFile(filename) {
+            if (Object.keys(project.files).length > 1) {
+                delete project.files[filename];
+                
+                if (project.activeFile === filename) {
+                    project.activeFile = Object.keys(project.files)[0];
+                }
+                
+                updateProjectView();
+                showNotification('File closed');
+            } else {
+                showNotification('Cannot close the only file in project');
+            }
+        }
+
+        // Run project
+        function runProject() {
+            updatePreview();
+            showNotification('Project running...');
+        }
+
+        // Open in new tab
+        function openInNewTab() {
+            const preview = document.getElementById('preview');
+            const newWindow = window.open();
+            newWindow.document.write(preview.srcdoc);
+            newWindow.document.close();
+        }
+
+        // Export project
+        function exportProject() {
+            const htmlContent = project.files['index.html']?.content || '';
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${project.name}.html`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showNotification('Project exported successfully!');
+        }
+
+        // Create app from project
+        function createAppFromProject() {
+            const appName = document.getElementById('appName').value || 'MyApp';
+            
+            // Combine all files into a single HTML file
+            let htmlContent = '';
+            let cssContent = '';
+            let jsContent = '';
+            
+            // Extract content from files
+            Object.values(project.files).forEach(file => {
+                if (file.type === 'html') {
+                    htmlContent = file.content;
+                } else if (file.type === 'css') {
+                    cssContent += file.content + '\n';
+                } else if (file.type === 'js') {
+                    jsContent += file.content + '\n';
+                }
+            });
+            
+            // If no HTML file, create a basic one
+            if (!htmlContent) {
+                htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${appName}</title>
+</head>
+<body>
+    <h1>${appName}</h1>
+    <p>Your app content goes here.</p>
+</body>
+</html>`;
+            }
+            
+            // Inject CSS and JS into HTML
+            if (cssContent) {
+                const headIndex = htmlContent.indexOf('</head>');
+                if (headIndex !== -1) {
+                    htmlContent = htmlContent.slice(0, headIndex) + 
+                                 `<style>${cssContent}</style>` + 
+                                 htmlContent.slice(headIndex);
+                } else {
+                    // If no head tag, add one
+                    htmlContent = htmlContent.replace('<html>', '<html><head></head>');
+                    const newHeadIndex = htmlContent.indexOf('</head>');
+                    htmlContent = htmlContent.slice(0, newHeadIndex) + 
+                                 `<style>${cssContent}</style>` + 
+                                 htmlContent.slice(newHeadIndex);
+                }
+            }
+            
+            if (jsContent) {
+                const bodyIndex = htmlContent.indexOf('</body>');
+                if (bodyIndex !== -1) {
+                    htmlContent = htmlContent.slice(0, bodyIndex) + 
+                                 `<script>${jsContent}</script>` + 
+                                 htmlContent.slice(bodyIndex);
+                } else {
+                    // If no body tag, add one
+                    htmlContent = htmlContent.replace('</html>', '<body></body></html>');
+                    const newBodyIndex = htmlContent.indexOf('</body>');
+                    htmlContent = htmlContent.slice(0, newBodyIndex) + 
+                                 `<script>${jsContent}</script>` + 
+                                 htmlContent.slice(newBodyIndex);
+                }
+            }
+            
+            // Create and download the app file
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${appName}.html`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            hideModal('createAppModal');
+            showNotification(`App "${appName}" created successfully!`);
+        }
+
+        // Modal functions
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Show notification
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Auto-save functionality
+        document.getElementById('codeEditor').addEventListener('input', function() {
+            if (project.activeFile) {
+                project.files[project.activeFile].content = this.value;
+                // Real-time preview update (optional - can be heavy for large projects)
+                // updatePreview();
+            }
+        });
+
+        // Initialize when page loads
+        window.onload = initIDE;
+    </script>
+</body>
+</html>
